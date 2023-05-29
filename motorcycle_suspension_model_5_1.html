@@ -1,0 +1,242 @@
+
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html><head>
+      <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <!--
+This HTML was auto-generated from MATLAB code.
+To make changes, update the MATLAB code and republish this document.
+      --><title>motorcycle_suspension_model_5_1</title><meta name="generator" content="MATLAB 9.14"><link rel="schema.DC" href="http://purl.org/dc/elements/1.1/"><meta name="DC.date" content="2023-05-29"><meta name="DC.source" content="motorcycle_suspension_model_5_1.m"><style type="text/css">
+html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,img,ins,kbd,q,s,samp,small,strike,strong,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{margin:0;padding:0;border:0;outline:0;font-size:100%;vertical-align:baseline;background:transparent}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:before,blockquote:after,q:before,q:after{content:'';content:none}:focus{outine:0}ins{text-decoration:none}del{text-decoration:line-through}table{border-collapse:collapse;border-spacing:0}
+
+html { min-height:100%; margin-bottom:1px; }
+html body { height:100%; margin:0px; font-family:Arial, Helvetica, sans-serif; font-size:10px; color:#000; line-height:140%; background:#fff none; overflow-y:scroll; }
+html body td { vertical-align:top; text-align:left; }
+
+h1 { padding:0px; margin:0px 0px 25px; font-family:Arial, Helvetica, sans-serif; font-size:1.5em; color:#d55000; line-height:100%; font-weight:normal; }
+h2 { padding:0px; margin:0px 0px 8px; font-family:Arial, Helvetica, sans-serif; font-size:1.2em; color:#000; font-weight:bold; line-height:140%; border-bottom:1px solid #d6d4d4; display:block; }
+h3 { padding:0px; margin:0px 0px 5px; font-family:Arial, Helvetica, sans-serif; font-size:1.1em; color:#000; font-weight:bold; line-height:140%; }
+
+a { color:#005fce; text-decoration:none; }
+a:hover { color:#005fce; text-decoration:underline; }
+a:visited { color:#004aa0; text-decoration:none; }
+
+p { padding:0px; margin:0px 0px 20px; }
+img { padding:0px; margin:0px 0px 20px; border:none; }
+p img, pre img, tt img, li img, h1 img, h2 img { margin-bottom:0px; }
+
+ul { padding:0px; margin:0px 0px 20px 23px; list-style:square; }
+ul li { padding:0px; margin:0px 0px 7px 0px; }
+ul li ul { padding:5px 0px 0px; margin:0px 0px 7px 23px; }
+ul li ol li { list-style:decimal; }
+ol { padding:0px; margin:0px 0px 20px 0px; list-style:decimal; }
+ol li { padding:0px; margin:0px 0px 7px 23px; list-style-type:decimal; }
+ol li ol { padding:5px 0px 0px; margin:0px 0px 7px 0px; }
+ol li ol li { list-style-type:lower-alpha; }
+ol li ul { padding-top:7px; }
+ol li ul li { list-style:square; }
+
+.content { font-size:1.2em; line-height:140%; padding: 20px; }
+
+pre, code { font-size:12px; }
+tt { font-size: 1.2em; }
+pre { margin:0px 0px 20px; }
+pre.codeinput { padding:10px; border:1px solid #d3d3d3; background:#f7f7f7; }
+pre.codeoutput { padding:10px 11px; margin:0px 0px 20px; color:#4c4c4c; }
+pre.error { color:red; }
+
+@media print { pre.codeinput, pre.codeoutput { word-wrap:break-word; width:100%; } }
+
+span.keyword { color:#0000FF }
+span.comment { color:#228B22 }
+span.string { color:#A020F0 }
+span.untermstring { color:#B20000 }
+span.syscmd { color:#B28C00 }
+span.typesection { color:#A0522D }
+
+.footer { width:auto; padding:10px 0px; margin:25px 0px 0px; border-top:1px dotted #878787; font-size:0.8em; line-height:140%; font-style:italic; color:#878787; text-align:left; float:none; }
+.footer p { margin:0px; }
+.footer a { color:#878787; }
+.footer a:hover { color:#878787; text-decoration:underline; }
+.footer a:visited { color:#878787; }
+
+table th { padding:7px 5px; text-align:left; vertical-align:middle; border: 1px solid #d6d4d4; font-weight:bold; }
+table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px solid #d6d4d4; }
+
+
+
+
+
+  </style></head><body><div class="content"><pre class="codeinput"><span class="comment">% Parameters</span>
+mr = 75; <span class="comment">% kg</span>
+mb = 200; <span class="comment">% kg</span>
+m = mr + mb;
+k1 = 5000; <span class="comment">% N/m</span>
+k2 = 4000; <span class="comment">% N/m</span>
+c1 = 3000; <span class="comment">% Ns/m</span>
+c2 = 2500; <span class="comment">% Ns/m</span>
+L = 3; <span class="comment">% m</span>
+cg = 0.6; <span class="comment">% m from the front axle</span>
+
+<span class="comment">% Road profile</span>
+road_length = 100; <span class="comment">% m</span>
+sampling_rate = 3; <span class="comment">% samples per meter</span>
+road_profile = create_road_profile(road_length, sampling_rate);
+
+<span class="comment">% Time and position vectors</span>
+time_step = 0.01; <span class="comment">% s</span>
+time = 0:time_step:road_length/sampling_rate;
+position = 0:1/sampling_rate:road_length;
+
+<span class="comment">% Initialize states</span>
+initial_states = [0; 0; 0; 0];
+
+<span class="comment">% Solve ODE</span>
+[time, states] = ode45(@(t, x) suspension_model(t, x, position, road_profile, sampling_rate, m, k1, k2, c1, c2), time, initial_states);
+
+<span class="comment">% Calculate positions</span>
+front_suspension_position = states(:, 1);
+rear_suspension_position = states(:, 3);
+
+<span class="comment">% Calculate centre of gravity position</span>
+cg_position = cg * L;
+cg = states(:, 1) * (1 - cg_position / L) + states(:, 3) * (cg_position / L);
+
+<span class="comment">% Plot results</span>
+figure;
+
+subplot(3,1,1);
+plot(position, road_profile);
+title(<span class="string">'Randomised Road Profile'</span>);
+xlabel(<span class="string">'Position (m)'</span>);
+ylabel(<span class="string">'Height (m)'</span>);
+grid <span class="string">on</span>;
+
+subplot(3,1,2);
+plot(position, interp1(time, front_suspension_position, position / sampling_rate), <span class="string">'r'</span>, position, interp1(time, rear_suspension_position, position / sampling_rate), <span class="string">'b'</span>);
+title(<span class="string">'Front and Rear Vertical Displacement'</span>);
+xlabel(<span class="string">'Position (m)'</span>);
+ylabel(<span class="string">'Displacement (m)'</span>);
+legend(<span class="string">'Front Suspension'</span>, <span class="string">'Rear Suspension'</span>);
+grid <span class="string">on</span>;
+
+subplot(3,1,3);
+plot(position, interp1(time, cg, position / sampling_rate), <span class="string">'k'</span>);
+title(<span class="string">'Centre of Gravity Vertical Displacement'</span>);
+xlabel(<span class="string">'Position (m)'</span>);
+ylabel(<span class="string">'Displacement (m)'</span>);
+grid <span class="string">on</span>;
+
+<span class="comment">% Functions</span>
+<span class="keyword">function</span> road_profile = create_road_profile(road_length, sampling_rate)
+    x = 0:1/sampling_rate:road_length;
+    road_profile = 0.1 * sin(0.05 * x) + 0.05 * randn(1, length(x));
+<span class="keyword">end</span>
+
+<span class="keyword">function</span> dxdt = suspension_model(t, x, position, road_profile, sampling_rate, total_mass, front_stiffness, rear_stiffness, front_damping, rear_damping)
+    <span class="comment">% States: x = [front_disp; front_vel; rear_disp; rear_vel]</span>
+    <span class="comment">% Parameters: total_mass, front_stiffness, rear_stiffness, front_damping, rear_damping</span>
+
+    <span class="comment">% Interpolate road profile at current position</span>
+    road_height = interp1(position, road_profile, t * sampling_rate);
+
+    <span class="comment">% Forces</span>
+    front_force = front_stiffness * (road_height - x(1)) + front_damping * (-x(2));
+    rear_force = rear_stiffness * (road_height - x(3)) + rear_damping * (-x(4));
+
+    <span class="comment">% Equations of motion</span>
+    front_acc = front_force / total_mass;
+    rear_acc = rear_force / total_mass;
+
+    <span class="comment">% State derivatives</span>
+    dxdt = [x(2); front_acc; x(4); rear_acc];
+<span class="keyword">end</span>
+</pre><img vspace="5" hspace="5" src="motorcycle_suspension_model_5_1_01.png" alt=""> <p class="footer"><br><a href="https://www.mathworks.com/products/matlab/">Published with MATLAB&reg; R2023a</a><br></p></div><!--
+##### SOURCE BEGIN #####
+% Parameters
+mr = 75; % kg
+mb = 200; % kg
+m = mr + mb;
+k1 = 5000; % N/m
+k2 = 4000; % N/m
+c1 = 3000; % Ns/m
+c2 = 2500; % Ns/m
+L = 3; % m
+cg = 0.6; % m from the front axle
+
+% Road profile
+road_length = 100; % m
+sampling_rate = 3; % samples per meter
+road_profile = create_road_profile(road_length, sampling_rate);
+
+% Time and position vectors
+time_step = 0.01; % s
+time = 0:time_step:road_length/sampling_rate;
+position = 0:1/sampling_rate:road_length;
+
+% Initialize states
+initial_states = [0; 0; 0; 0];
+
+% Solve ODE
+[time, states] = ode45(@(t, x) suspension_model(t, x, position, road_profile, sampling_rate, m, k1, k2, c1, c2), time, initial_states);
+
+% Calculate positions
+front_suspension_position = states(:, 1);
+rear_suspension_position = states(:, 3);
+
+% Calculate centre of gravity position
+cg_position = cg * L;
+cg = states(:, 1) * (1 - cg_position / L) + states(:, 3) * (cg_position / L);
+
+% Plot results
+figure;
+
+subplot(3,1,1);
+plot(position, road_profile);
+title('Randomised Road Profile');
+xlabel('Position (m)');
+ylabel('Height (m)');
+grid on;
+
+subplot(3,1,2);
+plot(position, interp1(time, front_suspension_position, position / sampling_rate), 'r', position, interp1(time, rear_suspension_position, position / sampling_rate), 'b');
+title('Front and Rear Vertical Displacement');
+xlabel('Position (m)');
+ylabel('Displacement (m)');
+legend('Front Suspension', 'Rear Suspension');
+grid on;
+
+subplot(3,1,3);
+plot(position, interp1(time, cg, position / sampling_rate), 'k');
+title('Centre of Gravity Vertical Displacement');
+xlabel('Position (m)');
+ylabel('Displacement (m)');
+grid on;
+
+% Functions
+function road_profile = create_road_profile(road_length, sampling_rate)
+    x = 0:1/sampling_rate:road_length;
+    road_profile = 0.1 * sin(0.05 * x) + 0.05 * randn(1, length(x));
+end
+
+function dxdt = suspension_model(t, x, position, road_profile, sampling_rate, total_mass, front_stiffness, rear_stiffness, front_damping, rear_damping)
+    % States: x = [front_disp; front_vel; rear_disp; rear_vel]
+    % Parameters: total_mass, front_stiffness, rear_stiffness, front_damping, rear_damping
+
+    % Interpolate road profile at current position
+    road_height = interp1(position, road_profile, t * sampling_rate);
+
+    % Forces
+    front_force = front_stiffness * (road_height - x(1)) + front_damping * (-x(2));
+    rear_force = rear_stiffness * (road_height - x(3)) + rear_damping * (-x(4));
+
+    % Equations of motion
+    front_acc = front_force / total_mass;
+    rear_acc = rear_force / total_mass;
+
+    % State derivatives
+    dxdt = [x(2); front_acc; x(4); rear_acc];
+end
+
+##### SOURCE END #####
+--></body></html>
