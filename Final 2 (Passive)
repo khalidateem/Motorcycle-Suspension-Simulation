@@ -1,0 +1,56 @@
+% Parameters
+Mw = 10; % (kg)
+Mb = 50; % (kg)
+Kw = 20000; % (N/m)
+Ks = 50000; % (N/m)
+c = 1000; % (Ns/m)
+
+% Road profile generation
+road_length = 100; % Road length in meters
+sampling_distance = 0.1; % Sampling distance in meters
+profile_points = road_length / sampling_distance;
+raw_road_profile = 0.1 * randn(profile_points, 1); % Generate random road profile
+
+% Apply a moving average filter to smooth the road profile
+window_size = 5;
+smooth_road_profile = filter(ones(window_size, 1) / window_size, 1, raw_road_profile);
+
+% Initial conditions
+x0 = 0; % Initial displacement of wheel
+y0 = 0; % Initial displacement of body above the suspension
+x_dot0 = 0; % Initial velocity of wheel
+y_dot0 = 0; % Initial velocity of body above the suspension
+
+initial_conditions = [x0; y0; x_dot0; y_dot0];
+
+% Time span for simulation
+tspan = [0, 10]; % Start and end time for simulation
+
+% Vehicle speed (m/s)
+speed = 10;
+
+% Interpolate the road profile to match the simulation time steps
+time_vector = linspace(0, road_length / speed, numel(smooth_road_profile));
+road_profile_func = @(t) interp1(time_vector, smooth_road_profile, t, 'linear', 'extrap');
+
+% System of ODEs
+ode_system = @(t, state) [
+    state(3);
+    state(4);
+    (Ks * (state(2) - state(1)) + c * (state(4) - state(3)) - Kw * (state(1) - road_profile_func(t))) / Mw;
+    (-Ks * (state(2) - state(1)) - c * (state(4) - state(3))) / Mb;
+];
+
+% Solve the system of ODEs using ode45
+[t, sol] = ode45(ode_system, tspan, initial_conditions);
+
+% Plot the results
+figure;
+plot(t, sol(:, 1), 'r-', 'LineWidth', 0.5);
+hold on;
+plot(t, sol(:, 2), 'b-', 'LineWidth', 0.5);
+xlabel('Time (s)');
+ylabel('Displacement (m)');
+legend('Wheel Displacement (x)', 'Body Displacement (y)');
+title('Front Motorcycle Suspension System Simulation with Random Road Profile');
+grid on;
